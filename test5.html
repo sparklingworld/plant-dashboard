@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environmental Impact Visualization</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- ✨ NEW: Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <style>
+        :root {
+            --baby-pink: #F8C8DC;
+            --happy-yellow: #FFDE59;
+            --dark-pink: #E75480;
+            --dark-yellow: #FFC300;
+            --industrial-grey: #333333;
+            --deforestation-green: #228B22;
+            --vehicle-asphalt: #555555;
+            --water-blue: #1E90FF;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Comic Neue', cursive;
+            background: linear-gradient(135deg, var(--baby-pink), var(--happy-yellow));
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 3px dashed var(--dark-pink);
+        }
+        
+        h1 {
+            color: var(--dark-pink);
+            margin: 0;
+            font-size: 2.5rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* 3D View Container */
+        .view-3d {
+            height: 400px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 20px;
+            margin: 30px 0;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border: 3px solid var(--dark-yellow);
+        }
+        
+        /* ✨ NEW: Canvas for 3D rendering */
+        .view-3d canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Floating info bubbles */
+        .info-bubbles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .bubble {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            cursor: pointer;
+            pointer-events: all;
+            transition: all 0.3s ease;
+            border: 2px solid var(--dark-pink);
+            z-index: 20;
+        }
+        
+        .bubble:hover {
+            transform: scale(1.1);
+            z-index: 30;
+            background-color: var(--happy-yellow);
+        }
+        
+        .bubble i {
+            font-size: 2rem;
+            color: var(--dark-pink);
+            margin-bottom: 10px;
+        }
+        
+        .bubble-content {
+            font-size: 0.9rem;
+        }
+        
+        /* Impact and Solutions Sections */
+        .impact-section, .solutions-section {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 3px dashed var(--dark-pink);
+        }
+        
+        .section-title {
+            color: var(--dark-pink);
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+        
+        .point {
+            background-color: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            border-left: 5px solid var(--dark-yellow);
+        }
+        
+        .point-number {
+            background-color: var(--dark-pink);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .impact-section .point {
+            border-left-color: #E75480;
+        }
+        
+        .solutions-section .point {
+            border-left-color: #FFC300;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        .nav-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .back-btn {
+            background-color: var(--baby-pink);
+            color: var(--dark-pink);
+        }
+        
+        .next-btn {
+            background-color: var(--happy-yellow);
+            color: #333;
+        }
+        
+        .nav-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* Animation for bubbles */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .bubble {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .bubble:nth-child(2) {
+            animation-delay: 1s;
+        }
+        
+        .bubble:nth-child(3) {
+            animation-delay: 2s;
+        }
+        
+        .bubble:nth-child(4) {
+            animation-delay: 3s;
+        }
+        
+        /* ✨ NEW: Loading spinner */
+        .loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--dark-pink);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            z-index: 100;
+        }
+        
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-globe-americas"></i> Environmental Impact Visualization</h1>
+    </div>
+    
+    <div class="container">
+        <!-- 3D View Section -->
+        <div class="view-3d" id="3d-container">
+            <!-- ✨ NEW: Three.js renders here -->
+            <div class="loader" id="loader"></div>
+            <div class="info-bubbles">
+                <div class="bubble" style="top: 20%; left: 15%;" data-topic="industrial">
+                    <div>
+                        <i class="fas fa-factory"></i>
+                        <div class="bubble-content">Industrial Pollution</div>
+                    </div>
+                </div>
+                
+                <div class="bubble" style="top: 60%; left: 25%;" data-topic="vehicle">
+                    <div>
+                        <i class="fas fa-car"></i>
+                        <div class="bubble-content">Vehicle Emissions</div>
+                    </div>
+                </div>
+                
+                <div class="bubble" style="top: 30%; left: 70%;" data-topic="deforestation">
+                    <div>
+                        <i class="fas fa-tree"></i>
+                        <div class="bubble-content">Deforestation</div>
+                    </div>
+                </div>
+                
+                <div class="bubble" style="top: 70%; left: 65%;" data-topic="waste">
+                    <div>
+                        <i class="fas fa-trash"></i>
+                        <div class="bubble-content">Waste Mismanagement</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Human Impact Section -->
+        <div class="impact-section">
+            <h2 class="section-title"><i class="fas fa-exclamation-triangle"></i> How Human Activities Damage Our Planet</h2>
+            
+            <div class="point">
+                <div class="point-number">1</div>
+                <div>Deforestation for agriculture and urban development destroys natural habitats</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">2</div>
+                <div>Burning fossil fuels releases greenhouse gases causing climate change</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">3</div>
+                <div>Industrial waste pollutes rivers and oceans harming marine life</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">4</div>
+                <div>Overuse of plastic creates non-biodegradable waste that lasts centuries</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">5</div>
+                <div>Excessive use of pesticides and fertilizers contaminates soil and water</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">6</div>
+                <div>Urban sprawl replaces natural landscapes with concrete jungles</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">7</div>
+                <div>Overfishing disrupts marine ecosystems and food chains</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">8</div>
+                <div>Fast fashion creates massive textile waste and water pollution</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">9</div>
+                <div>Mining operations scar landscapes and release toxic substances</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">10</div>
+                <div>Excessive consumption depletes natural resources faster than they can regenerate</div>
+            </div>
+        </div>
+        
+        <!-- Solutions Section -->
+        <div class="solutions-section">
+            <h2 class="section-title"><i class="fas fa-lightbulb"></i> Ways We Can Reduce Environmental Damage</h2>
+            
+            <div class="point">
+                <div class="point-number">1</div>
+                <div>Transition to renewable energy sources like solar and wind power</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">2</div>
+                <div>Adopt sustainable farming practices that protect soil health</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">3</div>
+                <div>Implement strict recycling programs and reduce single-use plastics</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">4</div>
+                <div>Protect and restore forests through conservation efforts</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">5</div>
+                <div>Invest in public transportation to reduce vehicle emissions</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">6</div>
+                <div>Support sustainable fashion by buying less and choosing eco-friendly brands</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">7</div>
+                <div>Practice water conservation in daily activities</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">8</div>
+                <div>Choose locally sourced food to reduce transportation emissions</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">9</div>
+                <div>Educate communities about environmental stewardship</div>
+            </div>
+            
+            <div class="point">
+                <div class="point-number">10</div>
+                <div>Support policies and companies that prioritize sustainability</div>
+            </div>
+        </div>
+        
+        <div class="nav-buttons">
+            <button class="nav-btn back-btn" onclick="window.location.href='{{ url_for('dashboard') }}'">
+                <i class="fas fa-arrow-left"></i> Back to Platform
+            </button>
+            <button class="nav-btn next-btn" onclick="window.location.href='{{ url_for('virtual_learning') }}'">
+                Interactive Learning <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- ✨ NEW: 3D Implementation Script -->
+    <script>
+        // Initialize Three.js
+        const container = document.getElementById('3d-container');
+        const loader = document.getElementById('loader');
+        
+        // Scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+            75, 
+            container.clientWidth / container.clientHeight, 
+            0.1, 
+            1000
+        );
+        camera.position.set(0, 5, 10);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        container.insertBefore(renderer.domElement, container.firstChild);
+        
+        // Controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        scene.add(directionalLight);
+        
+        // Theme colors
+        const themes = {
+            industrial: { bg: 0x333333, accent: 0xE75480 },
+            vehicle: { bg: 0x555555, accent: 0x3498db },
+            deforestation: { bg: 0x228B22, accent: 0xFFC300 },
+            waste: { bg: 0x4B5320, accent: 0x8B4513 }
+        };
+        
+        // Current active model
+        let activeModel = null;
+        
+        // Load model based on topic
+        function loadModel(topic) {
+            loader.style.display = 'block';
+            
+            // Clear previous model
+            if (activeModel) {
+                scene.remove(activeModel);
+            }
+            
+            // Set scene background
+            scene.background = new THREE.Color(themes[topic].bg);
+            
+            // Create new model group
+            activeModel = new THREE.Group();
+            scene.add(activeModel);
+            
+            // Add topic-specific elements
+            switch(topic) {
+                case 'industrial':
+                    createIndustrialScene();
+                    break;
+                case 'vehicle':
+                    createVehicleScene();
+                    break;
+                case 'deforestation':
+                    createDeforestationScene();
+                    break;
+                case 'waste':
+                    createWasteScene();
+                    break;
+            }
+            
+            loader.style.display = 'none';
+        }
+        
+        // ✨ Industrial Pollution Scene (Grey/Black)
+        function createIndustrialScene() {
+            // Factory building
+            const factory = new THREE.Mesh(
+                new THREE.BoxGeometry(4, 2, 3),
+                new THREE.MeshPhongMaterial({ color: 0x555555 })
+            );
+            factory.position.y = 1;
+            activeModel.add(factory);
+            
+            // Chimneys
+            const chimney1 = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.3, 0.4, 3),
+                new THREE.MeshPhongMaterial({ color: 0x777777 })
+            );
+            chimney1.position.set(-1, 3.5, 0);
+            activeModel.add(chimney1);
+            
+            // Smoke particles
+            const smoke = new THREE.Group();
+            for (let i = 0; i < 30; i++) {
+                const particle = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.1 + Math.random() * 0.2),
+                    new THREE.MeshBasicMaterial({ 
+                        color: 0xAAAAAA,
+                        transparent: true,
+                        opacity: 0.7
+                    })
+                );
+                particle.position.set(
+                    Math.random() * 2 - 1,
+                    Math.random() * 3 + 2,
+                    Math.random() * 2 - 1
+                );
+                smoke.add(particle);
+            }
+            activeModel.add(smoke);
+            
+            // Animate smoke
+            function animateSmoke() {
+                smoke.children.forEach(particle => {
+                    particle.position.y += 0.02;
+                    particle.position.x += (Math.random() - 0.5) * 0.01;
+                    if (particle.position.y > 5) {
+                        particle.position.y = 2;
+                    }
+                });
+            }
+            
+            // Pollution facts
+            const facts = [
+                "CO₂: 1.2kg/sec",
+                "NOx: High",
+                "PM2.5: 80μg/m³"
+            ];
+            
+            addFloatingText(facts, { x: 0, y: 4, z: 0 }, 0xFFFFFF);
+            
+            // Animation loop
+            function animate() {
+                animateSmoke();
+            }
+            
+            // Start animation
+            setInterval(animate, 50);
+        }
+        
+        // ✨ Deforestation Scene (Green/Brown)
+        function createDeforestationScene() {
+            // Ground
+            const ground = new THREE.Mesh(
+                new THREE.PlaneGeometry(20, 20),
+                new THREE.MeshPhongMaterial({ color: 0x8B4513 })
+            );
+            ground.rotation.x = -Math.PI / 2;
+            activeModel.add(ground);
+            
+            // Tree stumps
+            for (let i = 0; i < 5; i++) {
+                const stump = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.3, 0.3, 0.5),
+                    new THREE.MeshPhongMaterial({ color: 0x8B4513 })
+                );
+                stump.position.set(
+                    Math.random() * 10 - 5,
+                    0.25,
+                    Math.random() * 10 - 5
+                );
+                activeModel.add(stump);
+            }
+            
+            // Falling tree
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.3, 0.3, 2),
+                new THREE.MeshPhongMaterial({ color: 0x8B4513 })
+            );
+            const leaves = new THREE.Mesh(
+                new THREE.SphereGeometry(1.2, 8, 8),
+                new THREE.MeshPhongMaterial({ color: 0x228B22 })
+            );
+            leaves.position.y = 1.5;
+            tree.add(trunk, leaves);
+            tree.position.set(0, 1, 0);
+            tree.rotation.z = Math.PI / 4;
+            activeModel.add(tree);
+            
+            // Deforestation facts
+            const facts = [
+                "1 football field lost/sec",
+                "50,000 species extinct/year",
+                "15% of greenhouse gases"
+            ];
+            
+            addFloatingText(facts, { x: 0, y: 3, z: 0 }, 0xFFFFFF);
+        }
+        
+        // ✨ Helper: Add floating text
+        function addFloatingText(messages, position, color) {
+            messages.forEach((text, i) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = `rgba(${color === 0xFFFFFF ? '255,255,255' : '0,0,0'}, 0.7)`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font = 'Bold 24px Arial';
+                ctx.fillStyle = color === 0xFFFFFF ? '#000' : '#FFF';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, canvas.width/2, canvas.height/2);
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                const material = new THREE.SpriteMaterial({ 
+                    map: texture,
+                    transparent: true
+                });
+                const sprite = new THREE.Sprite(material);
+                sprite.scale.set(3, 1.5, 1);
+                sprite.position.set(
+                    position.x + (Math.random() - 0.5) * 3,
+                    position.y + i * 0.7,
+                    position.z + (Math.random() - 0.5) * 3
+                );
+                activeModel.add(sprite);
+            });
+        }
+        
+        // ✨ Vehicle Emissions Scene (Grey/Blue)
+        function createVehicleScene() {
+            // Road
+            const road = new THREE.Mesh(
+                new THREE.PlaneGeometry(15, 3),
+                new THREE.MeshPhongMaterial({ color: 0x333333 })
+            );
+            road.rotation.x = -Math.PI / 2;
+            road.position.y = 0.1;
+            activeModel.add(road);
+            
+            // Cars
+            const car1 = createCar();
+            car1.position.set(-3, 0.5, 0);
+            activeModel.add(car1);
+            
+            // Exhaust smoke
+            const exhaust = new THREE.Group();
+            for (let i = 0; i < 20; i++) {
+                const particle = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.1),
+                    new THREE.MeshBasicMaterial({ color: 0xAAAAAA })
+                );
+                particle.position.set(
+                    -2.5 + Math.random() * 0.2,
+                    0.3 + Math.random() * 0.5,
+                    Math.random() * 0.4 - 0.2
+                );
+                exhaust.add(particle);
+            }
+            activeModel.add(exhaust);
+            
+            // Animate exhaust
+            function animateExhaust() {
+                exhaust.children.forEach(particle => {
+                    particle.position.y += 0.02;
+                    if (particle.position.y > 1) {
+                        particle.position.y = 0.3;
+                    }
+                });
+            }
+            
+            // Vehicle facts
+            const facts = [
+                "CO₂: 4.6 metric tons/yr",
+                "NO₂: 30% of emissions",
+                "PM10: 20μg/m³"
+            ];
+            
+            addFloatingText(facts, { x: 0, y: 2, z: 0 }, 0xFFFFFF);
+            
+            // Animation loop
+            setInterval(animateExhaust, 50);
+        }
+        
+        // ✨ Helper: Create a simple car
+        function createCar() {
+            const car = new THREE.Group();
+            
+            // Body
+            const body = new THREE.Mesh(
+                new THREE.BoxGeometry(1.5, 0.5, 0.8),
+                new THREE.MeshPhongMaterial({ color: 0x3498db })
+            );
+            body.position.y = 0.25;
+            car.add(body);
+            
+            // Windows
+            const windowMesh = new THREE.Mesh(
+                new THREE.BoxGeometry(1.3, 0.3, 0.81),
+                new THREE.MeshPhongMaterial({ color: 0x87CEEB, transparent: true, opacity: 0.7 })
+            );
+            windowMesh.position.y = 0.55;
+            car.add(windowMesh);
+            
+            // Wheels
+            const wheelGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 16);
+            wheelGeo.rotateZ(Math.PI / 2);
+            const wheelMat = new THREE.MeshPhongMaterial({ color: 0x222222 });
+            
+            const wheel1 = new THREE.Mesh(wheelGeo, wheelMat);
+            wheel1.position.set(-0.6, 0.1, 0.4);
+            car.add(wheel1);
+            
+            const wheel2 = new THREE.Mesh(wheelGeo, wheelMat);
+            wheel2.position.set(0.6, 0.1, 0.4);
+            car.add(wheel2);
+            
+            const wheel3 = new THREE.Mesh(wheelGeo, wheelMat);
+            wheel3.position.set(-0.6, 0.1, -0.4);
+            car.add(wheel3);
+            
+            const wheel4 = new THREE.Mesh(wheelGeo, wheelMat);
+            wheel4.position.set(0.6, 0.1, -0.4);
+            car.add(wheel4);
+            
+            return car;
+        }
+        
+        // ✨ Waste Mismanagement Scene (Brown/Green)
+        function createWasteScene() {
+            // Ground
+            const ground = new THREE.Mesh(
+                new THREE.PlaneGeometry(20, 20),
+                new THREE.MeshPhongMaterial({ color: 0x4B5320 })
+            );
+            ground.rotation.x = -Math.PI / 2;
+            activeModel.add(ground);
+            
+            // Trash piles
+            for (let i = 0; i < 10; i++) {
+                const trash = new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        0.5 + Math.random(),
+                        0.2 + Math.random() * 0.5,
+                        0.5 + Math.random()
+                    ),
+                    new THREE.MeshPhongMaterial({ 
+                        color: Math.random() > 0.5 ? 0x8B4513 : 0x228B22 
+                    })
+                );
+                trash.position.set(
+                    Math.random() * 10 - 5,
+                    0.1 + Math.random() * 0.2,
+                    Math.random() * 10 - 5
+                );
+                trash.rotation.y = Math.random() * Math.PI;
+                activeModel.add(trash);
+            }
+            
+            // Waste facts
+            const facts = [
+                "2.1B tons waste/year",
+                "Plastic: 400M tons",
+                "Only 16% recycled"
+            ];
+            
+            addFloatingText(facts, { x: 0, y: 2, z: 0 }, 0xFFFFFF);
+        }
+        
+        // ✨ Handle bubble clicks
+        document.querySelectorAll('.bubble').forEach(bubble => {
+            bubble.addEventListener('click', function() {
+                const topic = this.getAttribute('data-topic');
+                loadModel(topic);
+            });
+        });
+        
+        // ✨ Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+        
+        // ✨ Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+        
+        // ✨ Load default model
+        loadModel('industrial');
+    </script>
+</body>
+</html>
