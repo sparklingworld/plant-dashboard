@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive 3D Model Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #92b5e9;
+            color: #0f0c0c;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #e7fc81 0%, #328fcc 100%);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(167, 228, 86, 0.985);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 750px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .model-section, .info-section {
+            background: rgb(247, 245, 245);
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 2px 10px rgb(255, 253, 253);
+        }
+
+        .dashboard-btn-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .dashboard-btn {
+            padding: 12px 25px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .dashboard-btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        #model-container {
+            width: 100%;
+            height: 760px;
+            border-radius: 8px;
+            overflow:hidden;
+            background-color: #f0f0f0; /* Your desired background color */
+            
+        }
+
+        #model-container canvas {
+            background-color: transparent !important;
+            display: block;
+        }
+
+        .info-section h2 {
+            color: #6439dc;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #5d95e9;
+        }
+
+        .stage-info {
+            margin-bottom: 20px;
+        }
+
+        .image-gallery {
+            margin: 20px 0;
+            position: relative;
+        }
+
+        #stageImage {
+            width: 100%;
+            height: 100%;
+            object-fit:fill;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgb(246, 242, 242);
+        }
+
+        .gallery-controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background-color: #e428fd;
+            color: rgb(16, 11, 11);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            background-color: #f7fe25;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: #58ea60;
+        }
+
+        .btn-secondary:hover {
+            background-color: #86caff;
+        }
+
+        
+        .video-section {
+            margin-top: 20px;
+        }
+
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: #e78fd6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #4badee;
+        }
+
+        .feature-card h3 {
+            color: #000000;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Growing with Nature: One Stage at a Time</h1>
+            <p>Know Your Plant: A Fun Learning Journey!</p>
+        </header>
+
+        <div class="main-content">
+            <div class="model-section">
+                <h2 id="stageTitle">Model Viewer</h2>
+                <div id="model-container"></div>
+                
+
+                <div class="navigation">
+                    <button id="prev-btn" class="btn btn-secondary">Previous</button>
+                    <button id="next-btn" class="btn">Next</button>
+                </div>
+                <div class="dashboard-btn-container">
+                    <button id="dashboard-btn" class="dashboard-btn">Back to Dashboard</button></div>
+            </div>
+
+
+            <div class="info-section">
+                <div class="stage-info">
+                    <h2>🌱 Let's Learn About This Plant Part!</h2>
+                    <div class="feature-card">
+                        <h3>📖 What’s Going On Here?</h3>
+                        <p id="infoText"></p>
+                    </div>
+                </div>
+
+                <div class="image-gallery">
+                    <h2>🖼️ Picture Time!</h2>
+                    <img id="stageImage" src="" alt="Stage image">
+                    <div class="gallery-controls">
+                        <button id="prev-image" class="btn btn-secondary">← Previous</button>
+                        <button id="next-image" class="btn">Next →</button>
+                    </div>
+                </div>
+
+                <div class="video-section">
+                    <h2>🎥 Watch & Learn!</h2>
+                    <div class="feature-card">
+                        <h3>Educational Video</h3>
+                        <div class="video-container" id="videoPlayer">
+                            <!-- YouTube iframe will be inserted here -->
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data for stages
+        const stages = [
+            {
+                title: "Seed",
+                info: "A seed is a plant embryo in a dormant state. It contains nutrients and waits for water, oxygen, and warmth to germinate.",
+                modelPath: "models/seed.glb",
+                scale: 10,
+                images: [
+                   "https://th.bing.com/th/id/OIP.JnU4n30yr_2QPQwicOrBDAHaEf?rs=1&pid=ImgDetMain",
+                "https://llllline.com/images/thumbs/anat/anatomy-of-a-bean-seed-3d-model-0000068685.jpeg",
+                "https://img.freepik.com/premium-photo/earth-s-day-view-seed-growing-soil-generative-ai_58409-30240.jpg"
+                ],
+                videoId: "VoJHZmpsXEg" // YouTube video ID for seed germination
+            },
+            {
+                title: "Stem",
+                info: "The stem emerges, transporting water and nutrients from roots to leaves. It provides structural support.",
+                modelPath: "models/stem.glb",
+                
+
+                scale: 5,
+                images: [
+                    "https://2.bp.blogspot.com/-r37x6N4OhVk/Vzmh85e_aBI/AAAAAAAABP4/QCtT3RMV-X0ixhKpsyJ0m5kSmh7ICW_BwCLcB/s1600/Plant%2BStem.jpg",
+                    "https://thumbs.dreamstime.com/b/stem-structure-illustration-stem-structure-shows-outside-stem-scientific-illustrations-educational-materials-291093707.jpg",
+                    
+                    "https://edurev.gumlet.io/ApplicationImages/Temp/59_1593f4af-212b-4f5e-b760-cba4814ba077_lg.png"
+                ],
+                videoId: "yIag_TPs6lw" // YouTube video ID for stem growth
+            },
+            {
+                title: "Stem",
+                info: "A dicot stem has an outer epidermis for protection. Inside that is the cortex, which includes collenchyma (for support), parenchyma (for storage), and endodermis (which controls movement inward). Next comes the pericycle and a ring of vascular bundles with xylem (water), phloem (food), and cambium (helps the stem grow thicker). The center is the pith, which also stores food.",
+                modelPath: "models/dicot-stem.glb",
+                scale: 1,
+                videoId: "wQq9CwW3b0A" // YouTube video ID for dicot stem
+            },
+                
+
+                
+            {
+                title: "Leaves",
+                info: "Leaves perform photosynthesis, converting sunlight into energy. They release oxygen and absorb CO2.",
+                modelPath: "models/leaves.glb",
+                scale: 0.9,
+                images: [
+                    "https://1.bp.blogspot.com/-C-rzPI-pZ5w/XuUVxPB0RlI/AAAAAAAAAwA/udFNKDE_QUIP8B2mA67MCGsINdDs-rTUACK4BGAsYHg/s850/Parts-of-a-Leaf-Diagram.jpg",
+                    "https://i.pinimg.com/originals/d0/61/80/d061803c1dfce7b7963d90d76fc630dc.png"
+                ],
+                videoId: "eE6TFq1oHeM" // YouTube video ID for leaf photosynthesis
+            },
+            {
+                title: "Flower",
+                info: "Flowers attract pollinators. They contain reproductive organs (pistil and stamen) for producing seeds.",
+                modelPath: "models/flower.glb",
+                scale: 1,
+                images: [
+                    "https://content-grail-production.s3.amazonaws.com/quetsion-media/34d5c42e-62e2-42b7-a79b-ff45ab4a6c7a-6.png",
+                    "https://www.timeforkids.com/wp-content/uploads/2022/07/K1_230421_5.jpg"
+                ],
+                videoId: "Ozf2ERxudPU" // YouTube video ID for flower reproduction
+            },
+            {
+                title: "Forest",
+                info: "A mature tree produces oxygen, stores carbon, and provides habitat for wildlife. It can live for decades!",
+                modelPath: "models/tree.glb",
+                scale: 1,
+                images: [
+                    "https://i.pinimg.com/originals/c9/27/98/c927989560eac9db96bcca1af0a626e7.jpg",
+                    "https://greenerideal.com/wp-content/uploads/2023/07/how-to-plant-a-tree-1068x711.jpg"
+                ],
+                videoId: "6x8IuJlcXTk" // YouTube video ID for forest ecosystem
+            }
+        ];
+
+        let scene, camera, renderer, controls, model;
+        let currentStage = 0;
+        let currentImageIndex = 0;
+        let audioPlayer;
+
+        function initThreeJS() {
+            // Initialize Three.js scene
+            scene = new THREE.Scene();
+            // scene.background = new THREE.Color(0x005b96);
+
+            const container = document.getElementById('model-container');
+            
+            // Set up camera
+            camera = new THREE.PerspectiveCamera(
+                30,
+                container.clientWidth / container.clientHeight,
+                0.2,
+                1000
+            );
+            camera.position.z = 6;
+
+            // Set up renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true ,  alpha: true});
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            directionalLight.position.set(10, 10, 10);
+            scene.add(directionalLight);
+
+            const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+            scene.add(hemisphereLight);
+
+           
+
+            // Add orbit controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableZoom = true;
+
+            // Load initial model
+            loadModel(stages[currentStage].modelPath);
+            
+            // Set up event listeners
+            window.addEventListener('resize', onWindowResize);
+            
+            // Get audio player
+            audioPlayer = document.getElementById('audioPlayer');
+            
+            // Start animation loop
+            animate();
+        }
+
+        function loadModel(path) {
+            const loader = new THREE.GLTFLoader();
+            loader.load(
+                path,
+                (gltf) => {
+                    if (model) scene.remove(model);
+                    model = gltf.scene;
+                    const scale = stages[currentStage].scale || 1;
+                    model.scale.set(scale, scale, scale);
+                    scene.add(model);
+                },
+                undefined,
+                (error) => {
+                    console.error('Error loading model:', error);
+                    // Fallback to a simple sphere if model fails to load
+                    const geometry = new THREE.SphereGeometry(1, 32, 32);
+                    const material = new THREE.MeshBasicMaterial({ color: 0x4caf50 });
+                    model = new THREE.Mesh(geometry, material);
+                    scene.add(model);
+                }
+            );
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('model-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (model) model.rotation.y += 0.001;
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function updateStageInfo() {
+            const stage = stages[currentStage];
+            
+            // Update text content
+            document.getElementById('stageTitle').textContent = stage.title;
+            document.getElementById('infoText').textContent = stage.info;
+            
+            // Update gallery
+            currentImageIndex = 0;
+            updateImage();
+            
+            // Update audio
+            updateVideo();
+        }
+
+        function updateImage() {
+            const stage = stages[currentStage];
+            if (stage.images && stage.images.length > 0) {
+                const image = stage.images[currentImageIndex];
+                document.getElementById("stageImage").src = image;
+            }
+        }
+
+        function updateVideo() {
+    const stage = stages[currentStage];
+    const videoContainer = document.getElementById('videoPlayer');
+    
+    // First clear any existing iframe
+    videoContainer.innerHTML = '';
+    
+    if (stage.videoId) {
+        const iframe = document.createElement('iframe');
+        iframe.setAttribute('width', '100%');
+        iframe.setAttribute('height', '100%');
+        iframe.setAttribute('src', `https://www.youtube.com/embed/${stage.videoId}?rel=0`);
+        iframe.setAttribute('title', 'YouTube video player');
+        iframe.setAttribute('frameborder', '0');
+        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+        iframe.setAttribute('allowfullscreen', '');
+        videoContainer.appendChild(iframe);
+    } else {
+        videoContainer.innerHTML = '<p>No video available for this stage</p>';
+    }
+}
+
+        function nextImage() {
+            const stage = stages[currentStage];
+            if (stage.images && stage.images.length > 0) {
+                currentImageIndex = (currentImageIndex + 1) % stage.images.length;
+                updateImage();
+            }
+        }
+
+        function prevImage() {
+            const stage = stages[currentStage];
+            if (stage.images && stage.images.length > 0) {
+                currentImageIndex = (currentImageIndex - 1 + stage.images.length) % stage.images.length;
+                updateImage();
+            }
+        }
+
+        // function nextStage() {
+        //     currentStage = (currentStage + 1) % stages.length;
+        //     updateStageInfo();
+        //     loadModel(stages[currentStage].modelPath);
+        // }
+
+        function nextStage() {
+    console.log('Next stage clicked, current:', currentStage);
+    currentStage = (currentStage + 1) % stages.length;
+    console.log('New stage:', currentStage);
+    updateStageInfo();
+    loadModel(stages[currentStage].modelPath);
+}
+
+
+        function prevStage() {
+            currentStage = (currentStage - 1 + stages.length) % stages.length;
+            updateStageInfo();
+            loadModel(stages[currentStage].modelPath);
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            initThreeJS();
+            updateStageInfo();
+            document.getElementById('dashboard-btn').addEventListener('click', () => {
+                // Replace this with your actual dashboard URL or navigation logic
+                window.location.href = '/dashboard'; 
+                // Or use: window.location.href = 'index.html';
+                // Or for demonstration: alert('Navigating to dashboard...');
+            });
+            // Set up event listeners for buttons
+            document.getElementById('next-btn').addEventListener('click', nextStage);
+            document.getElementById('prev-btn').addEventListener('click', prevStage);
+            document.getElementById('next-image').addEventListener('click', nextImage);
+            document.getElementById('prev-image').addEventListener('click', prevImage);
+            
+        });
+    </script>
+</body>
+</html>
