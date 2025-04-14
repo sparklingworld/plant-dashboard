@@ -216,6 +216,7 @@
                     <button id="next-btn" class="btn">Next</button>
                 </div>
                 <div class="dashboard-btn-container">
+                   
                     <button id="dashboard-btn" class="dashboard-btn">Back to Dashboard</button></div>
             </div>
 
@@ -506,17 +507,15 @@
         document.addEventListener('DOMContentLoaded', () => {
             initThreeJS();
             updateStageInfo();
-            document.getElementById('dashboard-btn').addEventListener('click', () => {
-                // Replace this with your actual dashboard URL or navigation logic
-                window.location.href = '/dashboard'; 
-                // Or use: window.location.href = 'index.html';
-                // Or for demonstration: alert('Navigating to dashboard...');
-            });
+      
             // Set up event listeners for buttons
+          
             document.getElementById('next-btn').addEventListener('click', nextStage);
             document.getElementById('prev-btn').addEventListener('click', prevStage);
             document.getElementById('next-image').addEventListener('click', nextImage);
             document.getElementById('prev-image').addEventListener('click', prevImage);
+            document.getElementById('dashboard-btn').addEventListener('click', () => {
+            window.location.href = 'https://sparklingworld.github.io/plant-dashboard/';});
             
         });
     </script>
